@@ -78,15 +78,16 @@ namespace Earwax_Prompt_Importer
                 // Speak the string asynchronously.  
                 synth.SpeakAsync(builder);
 
-                synth.Dispose();
+                //synth.Dispose();
 
                 // Convert WAV to OGG
-                if(File.Exists($@"{Path.GetDirectoryName(args[0])}\custom_{i}.wav"))
+                if (File.Exists($@"{Path.GetDirectoryName(args[0])}\custom_{i}.wav"))
                 {
                     using (Process process = new())
                     {
                         process.StartInfo.FileName = $"\"{Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)}\\ExternalResources\\oggenc2.exe\"";
                         process.StartInfo.Arguments = $"\"{Path.GetDirectoryName(args[0])}\\custom_{i}.wav\"";
+                        //process.StartInfo.WorkingDirectory = $"\"{Path.GetDirectoryName(args[0])}\"";
                         process.StartInfo.UseShellExecute = false;
                         process.StartInfo.RedirectStandardOutput = true;
                         process.StartInfo.CreateNoWindow = true;
@@ -96,7 +97,7 @@ namespace Earwax_Prompt_Importer
                         process.WaitForExit();
                     }
 
-                    File.Delete($@"{Path.GetDirectoryName(args[0])}\custom_{i}.wav");
+                    //File.Delete($@"{Path.GetDirectoryName(args[0])}\custom_{i}.wav");
                 }
             }
 
