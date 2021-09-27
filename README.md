@@ -14,7 +14,7 @@ For Sounds, the text file needs to begin with `[Audio]` then have each sound's f
 ```
 [Prompt]
 Demonstration Prompt 1
-Demonstration Prompt 2, using <i>Italic</t> text.
+Demonstration Prompt 2, using <i>Italic</i> text.
 Demonstration Prompt 3, using <ANY>'s name.
 ```
 
