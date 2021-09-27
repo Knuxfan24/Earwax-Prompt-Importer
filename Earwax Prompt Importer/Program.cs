@@ -49,6 +49,7 @@ namespace Earwax_Prompt_Importer
             // Set up the actual Data.
             PromptFormatData Data = new();
 
+            // Loop through each entry in our text file.
             for (int i = 0; i < text.Length; i++)
             {
                 EarwaxPrompt prompt = new()
@@ -75,10 +76,11 @@ namespace Earwax_Prompt_Importer
                 tts = tts.Replace("</i>", "");
                 builder.AppendText(tts);
 
-                // Speak the string asynchronously.  
-                synth.SpeakAsync(builder);
+                // Speak the sound to our WAV file.
+                synth.Speak(builder);
 
-                //synth.Dispose();
+                // Dispose of the builder so we can actually delete the WAV afterwards.
+                synth.Dispose();
 
                 // Convert WAV to OGG
                 if (File.Exists($@"{Path.GetDirectoryName(args[0])}\custom_{i}.wav"))
@@ -87,7 +89,6 @@ namespace Earwax_Prompt_Importer
                     {
                         process.StartInfo.FileName = $"\"{Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)}\\ExternalResources\\oggenc2.exe\"";
                         process.StartInfo.Arguments = $"\"{Path.GetDirectoryName(args[0])}\\custom_{i}.wav\"";
-                        //process.StartInfo.WorkingDirectory = $"\"{Path.GetDirectoryName(args[0])}\"";
                         process.StartInfo.UseShellExecute = false;
                         process.StartInfo.RedirectStandardOutput = true;
                         process.StartInfo.CreateNoWindow = true;
@@ -97,12 +98,13 @@ namespace Earwax_Prompt_Importer
                         process.WaitForExit();
                     }
 
-                    //File.Delete($@"{Path.GetDirectoryName(args[0])}\custom_{i}.wav");
+                    // Remove the now useless WAV.
+                    File.Delete($@"{Path.GetDirectoryName(args[0])}\custom_{i}.wav");
                 }
             }
 
 
-            // Write the JET file.
+            // Write the JET file, patching the capitalisation problem on PromptAudio.
             JsonSerializerSettings serializerSettings = new()
             {
                 ContractResolver = new CamelCasePropertyNamesContractResolver()
