@@ -11,53 +11,96 @@ namespace Earwax_Prompt_Importer
 {
     internal class Program
     {
-        // Earwax Data Classes
+        // Earwax Prompt Data Classes
         public class PromptFormatData
         {
+            /// <summary>
+            /// List of prompts. Placed this like this so the JSON writes correctly.
+            /// </summary>
             public List<EarwaxPrompt> Content = new();
         }
         public class EarwaxPrompt
         {
+            /// <summary>
+            /// ID number, not sure what this is used for, as it doesn't seem to be incremental?
+            /// </summary>
             [JsonProperty(Order = 1)]
             public int ID { get; set; }
 
+            /// <summary>
+            /// Whether this prompt should be removed if Family Friendly mode is on.
+            /// </summary>
             [JsonProperty(Order = 2)]
             public bool X { get; set; }
 
+            /// <summary>
+            /// The sound file to play for this prompt.
+            /// </summary>
             [JsonProperty(Order = 3)]
             public string PromptAudio { get; set; }
 
+            /// <summary>
+            /// The actual text of this prompt.
+            /// </summary>
             [JsonProperty(Order = 4)]
             public string Name { get; set; }
 
+            /// <summary>
+            /// Makes the VS Debuger show the Name variable rather than just Earwax_Prompt_Importer.EarwaxPrompt for this entry.
+            /// </summary>
             public override string ToString() => Name;
         }
+
+        // Earwax Audio Data Classes
         public class AudioFormatData
         {
+            /// <summary>
+            /// Unknown, is set to 1234.
+            /// </summary>
             [JsonProperty(Order = 1)]
             public int episodeid { get; set; }
 
+            /// <summary>
+            /// List of audio selections.
+            /// </summary>
             [JsonProperty(Order = 2)]
-
             public List<EarwaxAudio> Content = new();
         }
         public class EarwaxAudio
         {
+            /// <summary>
+            /// Whether this sound should be removed if Family Friendly mode is on.
+            /// </summary>
             [JsonProperty(Order = 1)]
             public bool X { get; set; }
 
+            /// <summary>
+            /// The actual text of this sound.
+            /// </summary>
             [JsonProperty(Order = 2)]
             public string Name { get; set; }
 
+            /// <summary>
+            /// Unknown, seems to be the same as Name?
+            /// </summary>
             [JsonProperty(Order = 3)]
             public string Short { get; set; }
 
+            /// <summary>
+            /// ID number, used to select the sound file to play.
+            /// </summary>
             [JsonProperty(Order = 4)]
             public int ID { get; set; }
 
+            /// <summary>
+            /// The categories this sound is in, not sure what this is used for beyond achievements.
+            /// </summary>
             [JsonProperty(Order = 5)]
             public List<string> Categories = new();
 
+            /// <summary>
+            /// Makes the VS Debuger show the Name variable rather than just Earwax_Prompt_Importer.EarwaxAudio for this entry.
+            /// </summary>
             public override string ToString() => Name;
         }
 
@@ -75,6 +118,7 @@ namespace Earwax_Prompt_Importer
             var text = File.ReadAllLines(args[0]);
 
             // Check if this is an audio list.
+            // TODO, way to mark a sound as explicit for closer emulation of original features?
             if (text[0] == "[Audio]")
             {
                 // Create the directories to store things in.
@@ -157,6 +201,7 @@ namespace Earwax_Prompt_Importer
             }
 
             // Check if this is a prompt list.
+            // TODO, way to mark a prompt as explicit for closer emulation of original features?
             if (text[0] == "[Prompts]")
             {
                 // Create a directory to store things.
