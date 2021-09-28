@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Speech.Synthesis;
-using System.Text.Json.Serialization;
 
 namespace Earwax_Prompt_Importer
 {
