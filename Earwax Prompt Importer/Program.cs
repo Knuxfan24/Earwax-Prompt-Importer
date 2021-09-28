@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Speech.Synthesis;
+using System.Text.Json.Serialization;
 
 namespace Earwax_Prompt_Importer
 {
@@ -17,6 +18,7 @@ namespace Earwax_Prompt_Importer
             /// <summary>
             /// List of prompts. Placed this like this so the JSON writes correctly.
             /// </summary>
+            [JsonProperty(Order = 1, PropertyName = "content")]
             public List<EarwaxPrompt> Content = new();
         }
         public class EarwaxPrompt
@@ -24,31 +26,31 @@ namespace Earwax_Prompt_Importer
             /// <summary>
             /// ID number, not sure what this is used for, as it doesn't seem to be incremental?
             /// </summary>
-            [JsonProperty(Order = 1)]
+            [JsonProperty(Order = 1, PropertyName = "id")]
             public int ID { get; set; }
 
             /// <summary>
             /// Whether this prompt should be removed if Family Friendly mode is on.
             /// </summary>
-            [JsonProperty(Order = 2)]
-            public bool X { get; set; }
+            [JsonProperty(Order = 2, PropertyName = "x")]
+            public bool Explicit { get; set; }
 
             /// <summary>
             /// The sound file to play for this prompt.
             /// </summary>
-            [JsonProperty(Order = 3)]
+            [JsonProperty(Order = 3, PropertyName = "PromptAudio")]
             public string PromptAudio { get; set; }
 
             /// <summary>
             /// The actual text of this prompt.
             /// </summary>
-            [JsonProperty(Order = 4)]
-            public string Name { get; set; }
+            [JsonProperty(Order = 4, PropertyName = "name")]
+            public string Prompt { get; set; }
 
             /// <summary>
             /// Makes the VS Debuger show the Name variable rather than just Earwax_Prompt_Importer.EarwaxPrompt for this entry.
             /// </summary>
-            public override string ToString() => Name;
+            public override string ToString() => Prompt;
         }
 
         // Earwax Audio Data Classes
@@ -57,13 +59,13 @@ namespace Earwax_Prompt_Importer
             /// <summary>
             /// Unknown, is set to 1234.
             /// </summary>
-            [JsonProperty(Order = 1)]
-            public int episodeid { get; set; }
+            [JsonProperty(Order = 1, PropertyName = "episodeid")]
+            public int Episode { get; set; }
 
             /// <summary>
             /// List of audio selections.
             /// </summary>
-            [JsonProperty(Order = 2)]
+            [JsonProperty(Order = 2, PropertyName = "content")]
             public List<EarwaxAudio> Content = new();
         }
         public class EarwaxAudio
@@ -71,31 +73,31 @@ namespace Earwax_Prompt_Importer
             /// <summary>
             /// Whether this sound should be removed if Family Friendly mode is on.
             /// </summary>
-            [JsonProperty(Order = 1)]
-            public bool X { get; set; }
+            [JsonProperty(Order = 1, PropertyName = "x")]
+            public bool Explicit { get; set; }
 
             /// <summary>
             /// The actual text of this sound.
             /// </summary>
-            [JsonProperty(Order = 2)]
+            [JsonProperty(Order = 2, PropertyName = "name")]
             public string Name { get; set; }
 
             /// <summary>
             /// Unknown, seems to be the same as Name?
             /// </summary>
-            [JsonProperty(Order = 3)]
-            public string Short { get; set; }
+            [JsonProperty(Order = 3, PropertyName = "short")]
+            public string ShortName { get; set; }
 
             /// <summary>
             /// ID number, used to select the sound file to play.
             /// </summary>
-            [JsonProperty(Order = 4)]
+            [JsonProperty(Order = 4, PropertyName = "id")]
             public int ID { get; set; }
 
             /// <summary>
             /// The categories this sound is in, not sure what this is used for beyond achievements.
             /// </summary>
-            [JsonProperty(Order = 5)]
+            [JsonProperty(Order = 5, PropertyName = "categories")]
             public List<string> Categories = new();
 
             /// <summary>
@@ -130,7 +132,7 @@ namespace Earwax_Prompt_Importer
                 // Set up the actual Data.
                 AudioFormatData AudioData = new()
                 {
-                    episodeid = 1234
+                    Episode = 1234
                 };
 
                 // Loop through our list of sounds.
@@ -149,9 +151,9 @@ namespace Earwax_Prompt_Importer
 
                             EarwaxAudio audio = new()
                             {
-                                X = false,
+                                Explicit = false,
                                 Name = split[1],
-                                Short = split[1],
+                                ShortName = split[1],
                                 ID = 24000000 + i
                             };
                             AudioData.Content.Add(audio);
@@ -192,11 +194,7 @@ namespace Earwax_Prompt_Importer
                         }
                     }
 
-                    JsonSerializerSettings serializerSettings = new()
-                    {
-                        ContractResolver = new CamelCasePropertyNamesContractResolver()
-                    };
-                    File.WriteAllText($"{Path.GetDirectoryName(args[0])}\\CustomEarwaxSounds\\{Path.GetFileNameWithoutExtension(args[0])}.jet", JsonConvert.SerializeObject(AudioData, Formatting.Indented, serializerSettings));
+                    File.WriteAllText($"{Path.GetDirectoryName(args[0])}\\CustomEarwaxSounds\\{Path.GetFileNameWithoutExtension(args[0])}.jet", JsonConvert.SerializeObject(AudioData, Formatting.Indented));
                 }
             }
 
@@ -219,9 +217,9 @@ namespace Earwax_Prompt_Importer
                     EarwaxPrompt prompt = new()
                     {
                         ID = 24000000 + i,
-                        X = false,
+                        Explicit = false,
                         PromptAudio = $"custom_{i}",
-                        Name = text[i]
+                        Prompt = text[i]
                     };
 
                     Data.Content.Add(prompt);
@@ -268,22 +266,11 @@ namespace Earwax_Prompt_Importer
                 }
 
 
-                // Write the JET file, patching the capitalisation problem on PromptAudio.
-                JsonSerializerSettings serializerSettings = new()
-                {
-                    ContractResolver = new CamelCasePropertyNamesContractResolver()
-                };
-                File.WriteAllText($"{Path.GetDirectoryName(args[0])}\\CustomEarwaxPrompts\\{Path.GetFileNameWithoutExtension(args[0])}.jet", JsonConvert.SerializeObject(Data, Formatting.Indented, serializerSettings));
-
-                string[] dumbJSONWorkaround = File.ReadAllLines($"{Path.GetDirectoryName(args[0])}\\CustomEarwaxPrompts\\{Path.GetFileNameWithoutExtension(args[0])}.jet");
-                for (int i = 0; i < dumbJSONWorkaround.Length; i++)
-                {
-                    dumbJSONWorkaround[i] = dumbJSONWorkaround[i].Replace("promptAudio", "PromptAudio");
-                }
-                File.WriteAllLines($"{Path.GetDirectoryName(args[0])}\\CustomEarwaxPrompts\\{Path.GetFileNameWithoutExtension(args[0])}.jet", dumbJSONWorkaround);
+                // Write the JET file.
+                File.WriteAllText($"{Path.GetDirectoryName(args[0])}\\CustomEarwaxPrompts\\{Path.GetFileNameWithoutExtension(args[0])}.jet", JsonConvert.SerializeObject(Data, Formatting.Indented));
             }
 
-            // See if it is actually either.
+            // See if it is actually either and give up if not.
             if (text[0] != "[Audio]" && text[0] != "[Prompts]")
             {
                 Console.WriteLine($"'{args[0]}' does not appear to be either an Audio List or a Prompt List.\nPress any key to continue.");
