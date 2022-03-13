@@ -110,7 +110,7 @@ namespace Earwax_Prompt_Importer
             // Complain if we don't have a file to parse.
             if(args.Length == 0)
             {
-                Console.WriteLine("Drag a txt file onto this program, where each line is a prompt to be converted.");
+                Console.WriteLine("Drag a txt file onto this program, where each line is a prompt to be converted.\nFor formatting information, refer to the GitHub README.");
                 Console.ReadKey();
                 return;
             }
@@ -119,7 +119,6 @@ namespace Earwax_Prompt_Importer
             var text = File.ReadAllLines(args[0]);
 
             // Check if this is an audio list.
-            // TODO, way to mark a sound as explicit for closer emulation of original features?
             if (text[0] == "[Audio]")
             {
                 // Create the directories to store things in.
@@ -155,6 +154,11 @@ namespace Earwax_Prompt_Importer
                                 ShortName = split[1],
                                 ID = 24000000 + i
                             };
+
+                            // If an explicit flag is there, then set it.
+                            if (split.Length > 2)
+                                audio.Explicit = bool.Parse(split[2]);
+
                             AudioData.Content.Add(audio);
 
                             // If this file's already an OGG, then copy it, if not then convert it.
@@ -198,11 +202,33 @@ namespace Earwax_Prompt_Importer
             }
 
             // Check if this is a prompt list.
-            // TODO, way to mark a prompt as explicit for closer emulation of original features?
             if (text[0] == "[Prompts]")
             {
+                // If the directory already exists, then ask if the user wants to delete the content in it.
+                if (Directory.Exists($"{Path.GetDirectoryName(args[0])}\\CustomEarwaxPrompts"))
+                {
+                    // Tell the user.
+                    Console.WriteLine($"Custom Prompts folder already exists. Delete the contents of it? [y/n]");
+
+                    // Store the response.
+                    ConsoleKey response;
+
+                    // If the response isn't a Y or an N, then ignore it and continue waiting.
+                    do
+                        response = Console.ReadKey(true).Key;
+                    while (response != ConsoleKey.Y && response != ConsoleKey.N);
+
+                    // If the user chooses to delete the exisitng files, loop through and remove them.
+                    if (response == ConsoleKey.Y)
+                    {
+                        string[] files = Directory.GetFiles($"{Path.GetDirectoryName(args[0])}\\CustomEarwaxPrompts", "*.*", SearchOption.TopDirectoryOnly);
+                        foreach (string file in files)
+                            File.Delete(file);
+                    }
+
+                }
+
                 // Create a directory to store things.
-                // TODO, maybe see about checking if this already exists and asking for permission to delete it.
                 Directory.CreateDirectory($"{Path.GetDirectoryName(args[0])}\\CustomEarwaxPrompts");
 
                 // Set up the actual Data.
@@ -213,6 +239,9 @@ namespace Earwax_Prompt_Importer
                 {
                     Console.WriteLine($"Converting '{text[i]}' to prompt.");
 
+                    // Split the string on the split character
+                    string[] split = text[i].Split('|');
+
                     EarwaxPrompt prompt = new()
                     {
                         ID = 24000000 + i,
@@ -221,18 +250,26 @@ namespace Earwax_Prompt_Importer
                         Prompt = text[i]
                     };
 
+                    // If an explicit flag is there, then set it.
+                    if (split.Length > 2)
+                        prompt.Explicit = bool.Parse(split[2]);
+
                     Data.Content.Add(prompt);
 
                     // Create the WAV for the user to manually make into OGGs (src: https://docs.microsoft.com/en-us/dotnet/api/system.speech.synthesis.speechsynthesizer.setoutputtowavefile?view=netframework-4.8)
                     // Initialize a new instance of the SpeechSynthesizer.  
                     SpeechSynthesizer synth = new();
 
+                    // If a rate flag is there, then set it.
+                    if (split.Length > 1)
+                        synth.Rate = int.Parse(split[1]);
+
                     // Configure the audio output.   
                     synth.SetOutputToWaveFile($@"{Path.GetDirectoryName(args[0])}\CustomEarwaxPrompts\custom_{i}.wav");
 
                     // Build a prompt, strip out the control tags.  
                     PromptBuilder builder = new();
-                    string tts = text[i].Replace("<ANY>", "this player");
+                    string tts = split[0].Replace("<ANY>", "this player");
                     tts = tts.Replace("<i>", "");
                     tts = tts.Replace("</i>", "");
                     builder.AppendText(tts);
