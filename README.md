@@ -1,5 +1,5 @@
 # Earwax Prompt Importer
-Very sloppy cmd app that converts plain text into a prompt file or a list of audio for the game Earwax in The Jackbox Party Pack 2. To use, simply build the project (all the code for this was written with a preview build of Visual Studio 2022) then drag a text file onto the resulting executable.
+Very sloppy cmd app that converts plain text into a prompt file or a list of audio for the game Earwax in The Jackbox Party Pack 2. To use, simply build the project (all the code for this was written with a preview build of Visual Studio 2022) or download the release then drag a text file onto the resulting executable.
 
 
 ### Prompts
