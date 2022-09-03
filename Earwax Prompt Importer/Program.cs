@@ -1,10 +1,12 @@
-﻿using Newtonsoft.Json;
+﻿using NAudio.Wave;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Speech.AudioFormat;
 using System.Speech.Synthesis;
 
 namespace Earwax_Prompt_Importer
@@ -184,15 +186,17 @@ namespace Earwax_Prompt_Importer
                             }
 
                             // Sloppily create a dummy spectrum file so the game doesn't hang.
-                            List<string> DummySpectrum = new();
-                            DummySpectrum.Add("{");
-                            DummySpectrum.Add("\t\"Refresh\":23,");
-                            DummySpectrum.Add("\t\"Frequencies\":[");
-                            DummySpectrum.Add("\t\t{\"left\":[ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],");
-                            DummySpectrum.Add("\t\t \"right\":[ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}");
-                            DummySpectrum.Add("\t],");
-                            DummySpectrum.Add("\t\"Peak\":100");
-                            DummySpectrum.Add("}");
+                            List<string> DummySpectrum = new()
+                            {
+                                "{",
+                                "\t\"Refresh\":23,",
+                                "\t\"Frequencies\":[",
+                                "\t\t{\"left\":[ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],",
+                                "\t\t \"right\":[ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}",
+                                "\t],",
+                                "\t\"Peak\":100",
+                                "}"
+                            };
                             File.WriteAllLines($"{Path.GetDirectoryName(args[0])}\\CustomEarwaxSounds\\SpectrumDummies\\{audio.ID}.jet", DummySpectrum);
                         }
                     }
@@ -265,7 +269,7 @@ namespace Earwax_Prompt_Importer
                         synth.Rate = int.Parse(split[1]);
 
                     // Configure the audio output.   
-                    synth.SetOutputToWaveFile($@"{Path.GetDirectoryName(args[0])}\CustomEarwaxPrompts\custom_{i}.wav");
+                    synth.SetOutputToWaveFile($@"{Path.GetDirectoryName(args[0])}\CustomEarwaxPrompts\custom_{i}.wav", new SpeechAudioFormatInfo(44100, AudioBitsPerSample.Sixteen, AudioChannel.Mono));
 
                     // Build a prompt, strip out the control tags.  
                     PromptBuilder builder = new();
@@ -283,10 +287,12 @@ namespace Earwax_Prompt_Importer
                     // Convert WAV to OGG
                     if (File.Exists($@"{Path.GetDirectoryName(args[0])}\CustomEarwaxPrompts\custom_{i}.wav"))
                     {
+                        string normalisedFile = Normalise($@"{Path.GetDirectoryName(args[0])}\CustomEarwaxPrompts\custom_{i}.wav");
+
                         using (Process process = new())
                         {
                             process.StartInfo.FileName = $"\"{Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)}\\ExternalResources\\oggenc2.exe\"";
-                            process.StartInfo.Arguments = $"\"{Path.GetDirectoryName(args[0])}\\CustomEarwaxPrompts\\custom_{i}.wav\"";
+                            process.StartInfo.Arguments = $"\"{normalisedFile}\"";
                             process.StartInfo.UseShellExecute = false;
                             process.StartInfo.RedirectStandardOutput = true;
                             process.StartInfo.CreateNoWindow = true;
@@ -296,8 +302,12 @@ namespace Earwax_Prompt_Importer
                             process.WaitForExit();
                         }
 
-                        // Remove the now useless WAV.
+                        // Remove the now useless WAVs.
                         File.Delete($@"{Path.GetDirectoryName(args[0])}\CustomEarwaxPrompts\custom_{i}.wav");
+                        File.Delete($@"{Path.GetDirectoryName(args[0])}\CustomEarwaxPrompts\custom_{i}_normalise.wav");
+
+                        // Rename the OGG file.
+                        File.Move($@"{Path.GetDirectoryName(args[0])}\CustomEarwaxPrompts\custom_{i}_normalise.ogg", $@"{Path.GetDirectoryName(args[0])}\CustomEarwaxPrompts\custom_{i}.ogg");
                     }
                 }
 
@@ -317,6 +327,48 @@ namespace Earwax_Prompt_Importer
             // Tell the user we're done.
             Console.WriteLine("\nDone!\nPress any key to continue.");
             Console.ReadKey();
+        }
+
+        /// <summary>
+        /// Normalises the stupidly quiet WAV files this makes.
+        /// </summary>
+        /// <param name="file">The path to the WAV file to normalise.</param>
+        /// <returns>The path to the normalised file.</returns>
+        private static string Normalise(string file)
+        {
+            // Set up the output file as I can't just overwrite the input WAV.
+            string output = file.Replace(".wav", "_normalise.wav");
+
+            // Everything else is from here: https://markheath.net/post/normalize-audio-naudio
+            float max = 0;
+
+            using (var reader = new AudioFileReader(file))
+            {
+                // find the max peak
+                float[] buffer = new float[reader.WaveFormat.SampleRate];
+                int read;
+                do
+                {
+                    read = reader.Read(buffer, 0, buffer.Length);
+                    for (int n = 0; n < read; n++)
+                    {
+                        var abs = Math.Abs(buffer[n]);
+                        if (abs > max) max = abs;
+                    }
+                } while (read > 0);
+
+                if (max == 0 || max > 1.0f)
+                    throw new InvalidOperationException("File cannot be normalized");
+
+                // rewind and amplify
+                reader.Position = 0;
+                reader.Volume = 1.0f / max;
+
+                // write out to a new WAV file
+                WaveFileWriter.CreateWaveFile16(output, reader);
+            }
+
+            return output;
         }
     }
 }
